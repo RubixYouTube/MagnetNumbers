@@ -7,4 +7,4 @@ yea. i had enough waiting for omegaexpantanumber.js, so ill surpass it myself, F
 MagnetNumbers.js (YOU ARE HERE!) - f_w^2(10) (General)  
 ElectronLiteN.js - f_w^3(10) (Pentadecal)  
 ElectronN.js - f_w^4(10) (Hexadecal)  
-PositronN.js - f_w^w(9e15) (Approx. Gibbol)
+PositronN.js - f_w^w(9e15) (Approx. Goobol)
