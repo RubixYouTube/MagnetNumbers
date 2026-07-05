@@ -317,7 +317,7 @@ var MagnetNum = (function () {
       var val = parseFloat(arrowMatch[2]);
       if (arrows >= 3) {
         this.sign = neg ? -1 : 1;
-        this.layer = 3 + (arrows - 2);
+        this.layer = 2 + arrows;
         this.array = [val, 1];
         return this.normalize();
       }
@@ -727,7 +727,11 @@ var MagnetNum = (function () {
 
   MN.prototype.isInt = function () {
     if (this.layer > 1) return true;
-    if (this.layer === 1) return false;
+    if (this.layer === 1) {
+      var m = this.array[0];
+      var e = this.array[1];
+      return Number.isInteger(m) && e >= 0;
+    }
     return Number.isInteger(this.array[0]);
   };
 
