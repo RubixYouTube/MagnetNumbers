@@ -1,4 +1,4 @@
-# MagnetNumbers v0
+# MagnetNum v0.1α
 Since Naryuko wont make f_w2 leveled number library, I will have to make it myself.  
 and actually it will reach f_w^2(10) Maximum. and someone else will have to make f_w^2(9e15).  
 Also for refrence f_w^2(10) is roughly about 10{10}^10 10 or 10{{{{{{{{{{10}}}}}}}}}}10 or {10,10,10,10}  
