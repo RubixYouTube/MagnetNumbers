@@ -47,6 +47,8 @@ var MagnetNum = (function () {
     maxPowLayers: MAX_POW_LAYERS_DEFAULT,
     maxTetrLayers: MAX_TETR_LAYERS_DEFAULT,
     maxArrowEntries: MAX_ARROW_ENTRIES_DEFAULT,
+    maxBracketsShown: 3,
+    maxArrowEntriesShown: 3,
     precision: 3
   };
 
@@ -130,11 +132,18 @@ var MagnetNum = (function () {
       var h = value;
       return MN.tetrate10(h, top);
     }
-    var r = new MN(0);
-    r.sign = 1;
-    r.layer = 3 + arrows;
-    r.array = [top !== undefined ? top : 1, value];
-    return r.normalize();
+    if (arrows <= 5) {
+      var r = new MN(0);
+      r.sign = 1;
+      r.layer = 2 + arrows;
+      r.array = [top !== undefined ? top : 1, value];
+      return r.normalize();
+    }
+    var r2 = new MN(0);
+    r2.sign = 1;
+    r2.layer = 10;
+    r2.array = [top !== undefined ? top : 1, value, arrows];
+    return r2.normalize();
   };
 
   MN.bracket = function (bracketCount, innerValue, top) {
@@ -468,11 +477,6 @@ var MagnetNum = (function () {
           return new MN(r3 * this.sign);
         }
       }
-      if (height3 >= MN.config.maxTetrLayers) {
-        this.layer = 4;
-        this.array = [top3, height3];
-        return this.normalize();
-      }
       return this;
     }
     if (this.layer >= 4 && this.layer < 10) {
@@ -487,16 +491,6 @@ var MagnetNum = (function () {
         }
         this.layer -= 1;
         this.array = [topH, Math.max(2, Math.floor(valH))];
-        return this.normalize();
-      }
-      if (valH >= MN.config.maxTetrLayers) {
-        if (this.layer < 9) {
-          this.layer += 1;
-          this.array = [topH, valH];
-          return this;
-        }
-        this.layer = 10;
-        this.array = [topH, valH, this.layer - 2];
         return this.normalize();
       }
       return this;
@@ -616,30 +610,24 @@ var MagnetNum = (function () {
     if (this.layer === 3) {
       var top3 = this.array[0];
       var height3 = this.array[1];
+      var shown3 = Math.min(height3, cfg.maxArrowEntriesShown);
       var s3 = prefix;
-      for (var i3 = 0; i3 < height3; i3++) s3 += "10^^";
+      for (var i3 = 0; i3 < shown3; i3++) s3 += "10^^";
       s3 += top3.toFixed(prec);
       return s3;
     }
 
     if (this.layer >= 4 && this.layer < 10) {
-      var arrows = this.layer - 2;
+      var arrows = this.layer - 1;
       var topA = this.array[0];
       var valA = this.array[1];
       var arrowStr = "";
       for (var iA = 0; iA < arrows; iA++) arrowStr += "^";
-      if (valA < cfg.maxTetrLayers) {
-        var sA = prefix;
-        for (var jA = 0; jA < valA; jA++) sA += "10" + arrowStr;
-        sA += topA.toFixed(prec);
-        return sA;
-      }
-      if (arrows <= 5) {
-        return prefix + "10" + arrowStr + topA.toFixed(prec) + " (x" + valA + ")";
-      }
-      this.layer = 10;
-      this.array = [topA, valA, arrows];
-      return this.toString();
+      var shown = Math.min(valA, cfg.maxArrowEntriesShown);
+      var sA = prefix;
+      for (var jA = 0; jA < shown; jA++) sA += "10" + arrowStr;
+      sA += topA.toFixed(prec);
+      return sA;
     }
 
     if (this.layer === 10) {
@@ -647,7 +635,13 @@ var MagnetNum = (function () {
       var inner10 = this.array[1];
       var bc10 = this.array[2];
       if (bc10 <= MAX_U64) {
-        return prefix + "10{" + bc10 + "}" + top10.toFixed(prec);
+        var shown10 = Math.min(Math.floor(bc10), cfg.maxBracketsShown);
+        var s10 = prefix;
+        for (var k10 = 0; k10 < shown10; k10++) {
+          s10 += "10{" + (bc10 - k10) + "}";
+        }
+        s10 += top10.toFixed(prec);
+        return s10;
       }
       this.layer = 11;
       this.array = [top10, inner10, bc10, 1];
@@ -1007,6 +1001,12 @@ var MagnetNum = (function () {
     if (other.isZero()) return new MN(this.sign * Infinity);
     if (this.isZero()) return new MN(0);
     if (this.isNaN() || other.isNaN()) return new MN(NaN);
+    if (other.layer === 9 && other.sign !== 0) {
+      return new MN(0);
+    }
+    if (this.layer === 9 && other.layer === 9) {
+      return new MN(NaN);
+    }
     var sign = this.sign * other.sign;
     if (this.layer === 0 && other.layer === 0) {
       var r = new MN(this.array[0] / other.array[0]);
