@@ -128,9 +128,6 @@ var MagnetNum = (function () {
 
   MN.arrow10 = function (arrows, value, top) {
     arrows = MN.ensure(arrows);
-    // Keep the bracket count exactly as the MagnetNum the user supplied
-    // (even if it is huge).  Its own toString() will produce the correct
-    // progressive notation (e.g. 1.000 * 10^309).
     var r = new MN(0);
     r.sign = 1;
     r.layer = 10;
@@ -335,7 +332,6 @@ var MagnetNum = (function () {
       this.array = [m, e];
       return this.normalize();
     }
-    // Handle simple scientific notation like "1e309"
     var simpleSci = s.match(/^([0-9.]+)e([+-]?[0-9.]+)$/i);
     if (simpleSci) {
       var m = parseFloat(simpleSci[1]);
@@ -695,6 +691,27 @@ var MagnetNum = (function () {
 
   MN.prototype.toJSON = function () {
     return { sign: this.sign, layer: this.layer, array: this.array, str: this.toString() };
+  };
+
+  MN.prototype.toHyperE = function () {
+    if (this.layer === 9) {
+      if (this.sign === 0) return "NaN";
+      return (this.sign < 0 ? "-" : "") + "Infinity";
+    }
+    if (this.layer === 0) return this.toString();
+    if (this.layer === 1) return "E" + this.array[1].toFixed(0);
+    if (this.layer === 2) return "E" + this.array[1].toFixed(0);
+    if (this.layer === 3) return "E" + this.array[1].toFixed(0);
+    if (this.layer >= 4 && this.layer < 10) {
+      var arrows = this.layer - 2;
+      return "E" + arrows + "#" + this.array[1].toFixed(0);
+    }
+    if (this.layer === 10) {
+      var bc = this.array[2];
+      var bcStr = (bc instanceof MN) ? bc.toString() : bc;
+      return "E" + bcStr + "#" + this.array[0].toFixed(3);
+    }
+    return this.toString();
   };
 
   MN.prototype.isNaN = function () {
