@@ -147,6 +147,13 @@ var MagnetNum = (function () {
   };
 
   MN.bracket = function (bracketCount, innerValue, top) {
+    if (!isFinite(bracketCount)) {
+      var r = new MN(0);
+      r.sign = 1;
+      r.layer = 11;
+      r.array = [top !== undefined ? top : 1, innerValue !== undefined ? innerValue : 1, 1e308, 2];
+      return r.normalize();
+    }
     var r = new MN(0);
     r.sign = 1;
     r.layer = 10;
@@ -499,7 +506,7 @@ var MagnetNum = (function () {
       var top10 = this.array[0];
       var inner10 = this.array[1];
       var bc10 = this.array[2];
-      if (bc10 > MAX_U64) {
+      if (!isFinite(bc10) || bc10 > MAX_U64) {
         this.layer = 11;
         this.array = [top10, inner10, bc10, 1];
         return this.normalize();
@@ -511,7 +518,12 @@ var MagnetNum = (function () {
       var inner11 = this.array[1];
       var bc11 = this.array[2];
       var tl11 = this.array[3];
-      if (tl11 > 10) {
+      if (!isFinite(bc11)) {
+        this.layer = 12;
+        this.array = [top11, 1, 1, tl11];
+        return this.normalize();
+      }
+      if (!isFinite(tl11) || tl11 > 10) {
         this.layer = 12;
         this.array = [top11, inner11, bc11, tl11];
         return this.normalize();
@@ -634,6 +646,9 @@ var MagnetNum = (function () {
       var top10 = this.array[0];
       var inner10 = this.array[1];
       var bc10 = this.array[2];
+      if (!isFinite(bc10)) {
+        return prefix + "10{10^^10}" + top10.toFixed(prec);
+      }
       if (bc10 <= MAX_U64) {
         var shown10 = Math.min(Math.floor(bc10), cfg.maxBracketsShown);
         var s10 = prefix;
@@ -653,19 +668,33 @@ var MagnetNum = (function () {
       var inner11 = this.array[1];
       var bc11 = this.array[2];
       var tl11 = this.array[3];
-      if (tl11 <= 10) {
-        return prefix + "10{" + bc11 + "}^" + tl11 + " " + top11.toFixed(prec);
+      if (!isFinite(bc11)) {
+        return prefix + "10{10^^10}^" + tl11 + " " + top11.toFixed(prec);
       }
-      return prefix + "Infinity";
+      if (tl11 <= 10) {
+        var shown11 = Math.min(Math.floor(bc11), cfg.maxBracketsShown);
+        if (shown11 < 1) shown11 = 1;
+        var s11 = prefix;
+        for (var k11 = 0; k11 < shown11; k11++) {
+          if (k11 > 0) s11 += " ";
+          s11 += "10{" + new MN(bc11 - k11).toString() + "}^" + tl11;
+        }
+        s11 += " " + top11.toFixed(prec);
+        return s11;
+      }
+      return prefix + "f_w(" + top11.toFixed(prec) + ")";
     }
 
     if (this.layer === 12) {
       var top12 = this.array[0];
       var depth12 = this.array[1];
+      if (!isFinite(depth12)) {
+        return prefix + "f_w^2(" + top12.toFixed(prec) + ")";
+      }
       if (depth12 <= 10) {
         return prefix + "f_" + depth12 + "(" + top12.toFixed(prec) + ")";
       }
-      return prefix + "Infinity";
+      return prefix + "f_w(" + top12.toFixed(prec) + ")";
     }
 
     if (this.layer > 12 && this.layer < 100) {
@@ -954,7 +983,14 @@ var MagnetNum = (function () {
   MN.prototype.mul = function (other) {
     other = MN.ensure(other);
     if (this.isNaN() || other.isNaN()) return new MN(NaN);
-    if (this.isZero() || other.isZero()) return new MN(0);
+    if (this.isZero()) {
+      if (other.layer === 9) return new MN(NaN);
+      return new MN(0);
+    }
+    if (other.isZero()) {
+      if (this.layer === 9) return new MN(NaN);
+      return new MN(0);
+    }
     if (this.layer === 9 || other.layer === 9) {
       var s = this.sign * other.sign;
       if (s === 0) return new MN(NaN);
@@ -998,14 +1034,20 @@ var MagnetNum = (function () {
 
   MN.prototype.div = function (other) {
     other = MN.ensure(other);
-    if (other.isZero()) return new MN(this.sign * Infinity);
-    if (this.isZero()) return new MN(0);
     if (this.isNaN() || other.isNaN()) return new MN(NaN);
-    if (other.layer === 9 && other.sign !== 0) {
+    if (other.isZero()) {
+      if (this.isZero()) return new MN(NaN);
+      return new MN(this.sign * Infinity);
+    }
+    if (this.isZero()) {
+      if (other.layer === 9) return new MN(NaN);
       return new MN(0);
     }
     if (this.layer === 9 && other.layer === 9) {
       return new MN(NaN);
+    }
+    if (other.layer === 9 && other.sign !== 0) {
+      return new MN(0);
     }
     var sign = this.sign * other.sign;
     if (this.layer === 0 && other.layer === 0) {
