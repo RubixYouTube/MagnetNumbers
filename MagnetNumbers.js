@@ -127,30 +127,15 @@ var MagnetNum = (function () {
   };
 
   MN.arrow10 = function (arrows, value, top) {
-    if (!isFinite(arrows)) {
-      var r = new MN(0);
-      r.sign = 1;
-      r.layer = 10;
-      r.array = [top !== undefined ? top : 1, value, Infinity];
-      return r.normalize();
-    }
-    if (arrows <= 0) return new MN(top !== undefined ? top * Math.pow(10, value) : Math.pow(10, value));
-    if (arrows === 1) {
-      var h = value;
-      return MN.tetrate10(h, top);
-    }
-    if (arrows <= 5) {
-      var r2 = new MN(0);
-      r2.sign = 1;
-      r2.layer = 2 + arrows;
-      r2.array = [top !== undefined ? top : 1, value];
-      return r2.normalize();
-    }
-    var r3 = new MN(0);
-    r3.sign = 1;
-    r3.layer = 10;
-    r3.array = [top !== undefined ? top : 1, value, arrows];
-    return r3.normalize();
+    arrows = MN.ensure(arrows);
+    // Keep the bracket count exactly as the MagnetNum the user supplied
+    // (even if it is huge).  Its own toString() will produce the correct
+    // progressive notation (e.g. 1.000 * 10^309).
+    var r = new MN(0);
+    r.sign = 1;
+    r.layer = 10;
+    r.array = [top !== undefined ? top : 1, value, arrows];
+    return r.normalize();
   };
 
   MN.bracket = function (bracketCount, innerValue, top) {
@@ -349,6 +334,17 @@ var MagnetNum = (function () {
       this.layer = 1;
       this.array = [m, e];
       return this.normalize();
+    }
+    // Handle simple scientific notation like "1e309"
+    var simpleSci = s.match(/^([0-9.]+)e([+-]?[0-9.]+)$/i);
+    if (simpleSci) {
+      var m = parseFloat(simpleSci[1]);
+      var eStr = simpleSci[2];
+      var e = parseFloat(eStr);
+      this.sign = neg ? -1 : 1;
+      this.layer = 1;
+      this.array = [m, isFinite(e) ? e : Infinity];
+      return this;
     }
     var num = parseFloat(s);
     if (neg) num = -num;
@@ -646,7 +642,7 @@ var MagnetNum = (function () {
       var top10 = this.array[0];
       var inner10 = this.array[1];
       var bc10 = this.array[2];
-      var bcStr = new MN(bc10).toString();
+      var bcStr = (bc10 instanceof MN) ? bc10.toString() : new MN(bc10).toString();
       return prefix + "10{" + bcStr + "}" + top10.toFixed(prec);
     }
 
@@ -1692,7 +1688,7 @@ var MagnetNum = (function () {
   };
 
   MN.prototype.arrow = function (arrows, value) {
-    arrows = MN.ensure(arrows).toNumber();
+    arrows = MN.ensure(arrows);
     value = MN.ensure(value);
     return MN.arrow10(arrows, value.toNumber(), this.toNumber());
   };
