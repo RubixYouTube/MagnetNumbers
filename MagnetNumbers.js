@@ -127,37 +127,45 @@ var MagnetNum = (function () {
   };
 
   MN.arrow10 = function (arrows, value, top) {
+    if (!isFinite(arrows)) {
+      var r = new MN(0);
+      r.sign = 1;
+      r.layer = 10;
+      r.array = [top !== undefined ? top : 1, value, Infinity];
+      return r.normalize();
+    }
     if (arrows <= 0) return new MN(top !== undefined ? top * Math.pow(10, value) : Math.pow(10, value));
     if (arrows === 1) {
       var h = value;
       return MN.tetrate10(h, top);
     }
     if (arrows <= 5) {
-      var r = new MN(0);
-      r.sign = 1;
-      r.layer = 2 + arrows;
-      r.array = [top !== undefined ? top : 1, value];
-      return r.normalize();
+      var r2 = new MN(0);
+      r2.sign = 1;
+      r2.layer = 2 + arrows;
+      r2.array = [top !== undefined ? top : 1, value];
+      return r2.normalize();
     }
-    var r2 = new MN(0);
-    r2.sign = 1;
-    r2.layer = 10;
-    r2.array = [top !== undefined ? top : 1, value, arrows];
-    return r2.normalize();
+    var r3 = new MN(0);
+    r3.sign = 1;
+    r3.layer = 10;
+    r3.array = [top !== undefined ? top : 1, value, arrows];
+    return r3.normalize();
   };
 
   MN.bracket = function (bracketCount, innerValue, top) {
     if (!isFinite(bracketCount)) {
       var r = new MN(0);
       r.sign = 1;
-      r.layer = 11;
-      r.array = [top !== undefined ? top : 1, innerValue !== undefined ? innerValue : 1, 1e308, 2];
+      r.layer = 10;
+      r.array = [top !== undefined ? top : 1, innerValue !== undefined ? innerValue : 1, Infinity];
       return r.normalize();
     }
+    var bc = Math.abs(bracketCount);
     var r = new MN(0);
     r.sign = 1;
     r.layer = 10;
-    r.array = [top !== undefined ? top : 1, innerValue, bracketCount];
+    r.array = [top !== undefined ? top : 1, innerValue, bc];
     return r.normalize();
   };
 
@@ -503,14 +511,6 @@ var MagnetNum = (function () {
       return this;
     }
     if (this.layer === 10) {
-      var top10 = this.array[0];
-      var inner10 = this.array[1];
-      var bc10 = this.array[2];
-      if (!isFinite(bc10) || bc10 > MAX_U64) {
-        this.layer = 11;
-        this.array = [top10, inner10, bc10, 1];
-        return this.normalize();
-      }
       return this;
     }
     if (this.layer === 11) {
@@ -646,21 +646,8 @@ var MagnetNum = (function () {
       var top10 = this.array[0];
       var inner10 = this.array[1];
       var bc10 = this.array[2];
-      if (!isFinite(bc10)) {
-        return prefix + "10{10^^10}" + top10.toFixed(prec);
-      }
-      if (bc10 <= MAX_U64) {
-        var shown10 = Math.min(Math.floor(bc10), cfg.maxBracketsShown);
-        var s10 = prefix;
-        for (var k10 = 0; k10 < shown10; k10++) {
-          s10 += "10{" + (bc10 - k10) + "}";
-        }
-        s10 += top10.toFixed(prec);
-        return s10;
-      }
-      this.layer = 11;
-      this.array = [top10, inner10, bc10, 1];
-      return this.toString();
+      var bcStr = new MN(bc10).toString();
+      return prefix + "10{" + bcStr + "}" + top10.toFixed(prec);
     }
 
     if (this.layer === 11) {
@@ -668,21 +655,13 @@ var MagnetNum = (function () {
       var inner11 = this.array[1];
       var bc11 = this.array[2];
       var tl11 = this.array[3];
-      if (!isFinite(bc11)) {
-        return prefix + "10{10^^10}^" + tl11 + " " + top11.toFixed(prec);
+      if (!isFinite(tl11) || tl11 > 10) {
+        this.layer = 12;
+        this.array = [top11, inner11, bc11, tl11];
+        return this.toString();
       }
-      if (tl11 <= 10) {
-        var shown11 = Math.min(Math.floor(bc11), cfg.maxBracketsShown);
-        if (shown11 < 1) shown11 = 1;
-        var s11 = prefix;
-        for (var k11 = 0; k11 < shown11; k11++) {
-          if (k11 > 0) s11 += " ";
-          s11 += "10{" + new MN(bc11 - k11).toString() + "}^" + tl11;
-        }
-        s11 += " " + top11.toFixed(prec);
-        return s11;
-      }
-      return prefix + "f_w(" + top11.toFixed(prec) + ")";
+      var bcStr11 = new MN(bc11).toString();
+      return prefix + "10{" + bcStr11 + "}^" + tl11 + " " + top11.toFixed(prec);
     }
 
     if (this.layer === 12) {
