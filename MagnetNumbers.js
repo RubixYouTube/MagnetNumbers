@@ -1681,10 +1681,10 @@ var MagnetNum = (function () {
     if (n === 1) return this.add(b);
     if (n === 2) return this.mul(b);
     if (n === 3) return this.pow(b);
-    if (n === 4) return this.tetrate(b.toNumber());
-    if (n === 5) return this.pentate(b.toNumber());
-    if (n === 6) return this.hexate(b.toNumber());
-    if (n === 7) return this.heptate(b.toNumber());
+    if (n === 4) return this.arrow(2, b);
+    if (n === 5) return this.arrow(3, b);
+    if (n === 6) return this.arrow(4, b);
+    if (n === 7) return this.arrow(5, b);
     var r = b.clone();
     for (var i = 0; i < b.toNumber(); i++) {
       r = this.hyper(n - 1, r);
