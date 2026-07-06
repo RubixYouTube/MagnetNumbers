@@ -129,11 +129,29 @@ var MagnetNum = (function () {
 
   MN.arrow10 = function (arrows, value, top) {
     arrows = MN.ensure(arrows);
-    var r = new MN(0);
-    r.sign = 1;
-    r.layer = 10;
-    r.array = [top !== undefined ? top : 1, value, arrows];
-    return r.normalize();
+    if (arrows.layer >= 1 || !arrows.isFinite() || arrows.gt(new MN(50))) {
+      var r = new MN(0);
+      r.sign = 1;
+      r.layer = 10;
+      r.array = [top !== undefined ? top : 1, value, arrows];
+      return r.normalize();
+    }
+    var arrowsNum = arrows.toNumber();
+    if (arrowsNum <= 0) return new MN(top !== undefined ? top * Math.pow(10, value) : Math.pow(10, value));
+    if (arrowsNum === 1) return MN.tetrate10(value, top);
+    if (arrowsNum <= 2) {
+      var r2 = new MN(0);
+      r2.sign = 1;
+      r2.layer = 2 + arrowsNum;
+      r2.array = [top !== undefined ? top : 1, value];
+      return r2.normalize();
+    }
+    // Force everything ≥ 3 arrows into bracket notation (Hyperoperator notation)
+    var r3 = new MN(0);
+    r3.sign = 1;
+    r3.layer = 10;
+    r3.array = [top !== undefined ? top : 1, value, arrowsNum];
+    return r3.normalize();
   };
 
   MN.bracket = function (bracketCount, innerValue, top) {
@@ -2148,7 +2166,6 @@ var MagnetNum = (function () {
       return r;
     }
     if (this.layer === 10) {
-      // bracket count acts as arrow count
       var bc = this.array[2];
       if (bc instanceof MN) {
         var newBc = bc.sub(new MN(count));
@@ -2169,7 +2186,6 @@ var MagnetNum = (function () {
     count = MN.ensure(count).toNumber() || 1;
     if (this.layer < 10) return this.clone();
     if (this.layer === 10) {
-      // reduce inner nesting by treating inner as bracket count
       var inner = this.array[1];
       if (inner instanceof MN && inner.layer >= 10) {
         var r = inner.clone();
@@ -2193,7 +2209,6 @@ var MagnetNum = (function () {
     if (this.layer !== 11) return this.clone();
     var newTier = Math.max(1, this.array[3] - count);
     if (newTier <= 1) {
-      // downgrade to simple bracket
       var r = new MN(0);
       r.sign = 1;
       r.layer = 10;
