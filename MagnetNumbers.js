@@ -1,6 +1,7 @@
 // MagnetNum.JS, is a number library that goes up to f_w^2(10), designed for Incrementals, Computing, Calculating or whatever you think of.
 // Usages
 // So basically you can use this for bigger numbers, i made this because ExpantaNum.js is starting to feel overused and not big so this Number library is actually bigger this time.
+// Please report bugs at the issues tab if founded a error
 
 var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 var NUMBER_MAX = Number.MAX_VALUE;
@@ -212,7 +213,7 @@ var MagnetNum = (function () {
     } else {
       this.sign = 1;
     }
-    if (n < MN.config.maxToSciN) {
+    if (n < MN.config.maxToSciN && n >= 1e-15) {
       this.layer = 0;
       this.array = [n];
     } else {
@@ -710,6 +711,12 @@ var MagnetNum = (function () {
       var bc = this.array[2];
       var bcStr = (bc instanceof MN) ? bc.toString() : bc;
       return "E" + bcStr + "#" + this.array[0].toFixed(3);
+    }
+    if (this.layer === 11) {
+      var bc = this.array[2];
+      var tl = this.array[3];
+      var bcStr = (bc instanceof MN) ? bc.toString() : bc;
+      return "E" + bcStr + "^" + tl + "#" + this.array[0].toFixed(3);
     }
     return this.toString();
   };
@@ -2129,6 +2136,73 @@ var MagnetNum = (function () {
     alpha = alpha !== undefined ? MN.ensure(alpha).toNumber() : 0.01;
     if (this.gt(new MN(0))) return this.clone();
     return this.mul(new MN(alpha));
+  };
+
+  MN.prototype.subArrow = function (count) {
+    count = MN.ensure(count).toNumber() || 1;
+    if (this.layer < 3) return this.clone();
+    if (this.layer >= 4 && this.layer < 10) {
+      var newLayer = Math.max(3, this.layer - count);
+      var r = this.clone();
+      r.layer = newLayer;
+      return r;
+    }
+    if (this.layer === 10) {
+      // bracket count acts as arrow count
+      var bc = this.array[2];
+      if (bc instanceof MN) {
+        var newBc = bc.sub(new MN(count));
+        if (newBc.lte(0)) newBc = new MN(1);
+        var r = this.clone();
+        r.array[2] = newBc;
+        return r;
+      }
+      var newCount = Math.max(1, bc - count);
+      var r = this.clone();
+      r.array[2] = newCount;
+      return r;
+    }
+    return this.clone();
+  };
+
+  MN.prototype.subNestedBracket = function (count) {
+    count = MN.ensure(count).toNumber() || 1;
+    if (this.layer < 10) return this.clone();
+    if (this.layer === 10) {
+      // reduce inner nesting by treating inner as bracket count
+      var inner = this.array[1];
+      if (inner instanceof MN && inner.layer >= 10) {
+        var r = inner.clone();
+        return r;
+      }
+      return this.clone();
+    }
+    if (this.layer === 11) {
+      var bc = this.array[2];
+      if (bc instanceof MN && bc.layer >= 10) {
+        var r = bc.clone();
+        return r;
+      }
+      return this.clone();
+    }
+    return this.clone();
+  };
+
+  MN.prototype.subBracketTier = function (count) {
+    count = MN.ensure(count).toNumber() || 1;
+    if (this.layer !== 11) return this.clone();
+    var newTier = Math.max(1, this.array[3] - count);
+    if (newTier <= 1) {
+      // downgrade to simple bracket
+      var r = new MN(0);
+      r.sign = 1;
+      r.layer = 10;
+      r.array = [this.array[0], this.array[1], this.array[2]];
+      return r.normalize();
+    }
+    var r = this.clone();
+    r.array[3] = newTier;
+    return r;
   };
 
   MN.init();
