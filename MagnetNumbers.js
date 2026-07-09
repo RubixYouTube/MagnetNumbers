@@ -1,7 +1,7 @@
 // MagnetNum.JS, is a number library that goes up to f_w^2(10), designed for Incrementals, Computing, Calculating or whatever you think of.
 // Usages
 // So basically you can use this for bigger numbers, i made this because ExpantaNum.js is starting to feel overused and not big so this Number library is actually bigger this time.
-// Please report bugs at the issues tab if founded a error
+// This is a alpha release, some may have bugs.
 
 var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 var NUMBER_MAX = Number.MAX_VALUE;
@@ -2156,6 +2156,20 @@ var MagnetNum = (function () {
     return this.mul(new MN(alpha));
   };
 
+  MN.prototype.hyperLog = function (base, height) {
+    base = MN.ensure(base || 10);
+    height = MN.ensure(height || 1).toNumber();
+    if (this.layer < 3) return this.log(base);
+    if (this.layer === 3) return new MN(this.array[1]);
+    if (this.layer >= 4 && this.layer < 10) {
+      return new MN(this.layer - 2);
+    }
+    if (this.layer === 10) {
+      return new MN(this.array[2] instanceof MN ? this.array[2].toNumber() : this.array[2]);
+    }
+    return new MN(Infinity);
+  };
+
   MN.prototype.subArrow = function (count) {
     count = MN.ensure(count).toNumber() || 1;
     if (this.layer < 3) return this.clone();
@@ -2167,14 +2181,9 @@ var MagnetNum = (function () {
     }
     if (this.layer === 10) {
       var bc = this.array[2];
-      if (bc instanceof MN) {
-        var newBc = bc.sub(new MN(count));
-        if (newBc.lte(0)) newBc = new MN(1);
-        var r = this.clone();
-        r.array[2] = newBc;
-        return r;
-      }
-      var newCount = Math.max(1, bc - count);
+      var newCount = (bc instanceof MN) 
+        ? Math.max(1, bc.sub(new MN(count)).toNumber())
+        : Math.max(1, Number(bc) - count);
       var r = this.clone();
       r.array[2] = newCount;
       return r;
